@@ -2,7 +2,7 @@ const SCREEN_WIDTH = window.innerWidth;
 const SCREEN_HEIGHT = window.innerHeight - 100;
 
 let force_x = 10;
-let force_y = 500; // Gravity
+let force_y = 600; // Gravity
 let damp_constant = 0.5;
 
 function distance(p0, p1) {
@@ -167,7 +167,7 @@ let softBody;
 
 function setup() {
   createCanvas(SCREEN_WIDTH, SCREEN_HEIGHT+100);
-  softBody = new SoftBody(100, 300, 200, 100, 8, 8); // x, y, width, height, rows, cols
+  softBody = new SoftBody(100, 300, 200, 100, 4, 8); // x, y, width, height, rows, cols
 }
 
 function draw() {
@@ -177,15 +177,3 @@ function draw() {
   softBody.update(dt);
   softBody.render();
 }
-
-// function mouseDragged() {
-//   // Allow user interaction by dragging points
-//   for (let point of softBody.points) {
-//     if (dist(mouseX, mouseY, point.x, point.y) < 20) {
-//       point.x = mouseX;
-//       point.y = mouseY;
-//       point.old_x = mouseX;
-//       point.old_y = mouseY;
-//     }
-//   }
-// }
