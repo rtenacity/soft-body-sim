@@ -214,8 +214,8 @@ class SoftBody {
 
         [topPoint, middlePoint, bottomPoint].forEach(point => {
             point.color = color(0, 255, 0);
-            // point.y += dy
-            // point.old_y += dy;
+            point.y += dy
+            point.old_y += dy;
             point.x += dx
             point.old_x += dx
         });
@@ -237,7 +237,7 @@ let softBodies = [];
 
 function setup() {
     createCanvas(SCREEN_WIDTH, SCREEN_HEIGHT + 100);
-    softBodies.push(new SoftBody(100, SCREEN_HEIGHT - 200, 200, 100, 3, 7, 1));
+    softBodies.push(new SoftBody(100, SCREEN_HEIGHT - 200, 200, 100, 3, 7, 0.5));
 }
 
 function draw() {
