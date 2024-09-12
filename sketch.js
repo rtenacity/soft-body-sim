@@ -1,8 +1,8 @@
 const SCREEN_WIDTH = window.innerWidth;
 const SCREEN_HEIGHT = window.innerHeight - 100;
 
+let g = 500;  // Constant gravitational acceleration in pixels per second^2
 let force_x = 0;
-let force_y = 600; // Gravity
 let damp_constant = 0.5;
 
 function distance(p0, p1) {
@@ -30,8 +30,9 @@ class Point {
             this.old_x = this.x;
             this.old_y = this.y;
 
+            // Apply constant acceleration for gravity (g)
             let acc_x = force_x / this.mass;
-            let acc_y = force_y / this.mass;
+            let acc_y = g;  // Gravity is a constant acceleration, no need to divide by mass
 
             this.x += vel_x + acc_x * dt * dt;
             this.y += vel_y + acc_y * dt * dt;
@@ -53,7 +54,7 @@ class Point {
             this.old_y = this.y + vel_y * damp_constant;
         } else if (this.y > SCREEN_HEIGHT) {
             this.y = SCREEN_HEIGHT;
-            this.y = this.y + vel_y * damp_constant;
+            this.old_y = this.y + vel_y * damp_constant;
         }
     }
 
@@ -61,6 +62,38 @@ class Point {
         noStroke();
         fill(255, 100);
         circle(this.x, this.y, this.radius * 2);
+    }
+}
+
+class Ball extends Point {
+    constructor(x, y, mass, radius) {
+        super(x, y, mass, false);
+        this.radius = radius;
+    }
+
+    render() {
+        noStroke();
+        fill(255, 0, 0);
+        circle(this.x, this.y, this.radius * 2);
+    }
+
+    constrain() {
+        let vel_x = (this.x - this.old_x);
+        let vel_y = (this.y - this.old_y);
+        if (this.x < 0) {
+            this.x = 0;
+            this.old_x = this.x + vel_x * damp_constant;
+        } else if (this.x > SCREEN_WIDTH) {
+            this.x = SCREEN_WIDTH;
+            this.old_x = this.x + vel_x * damp_constant;
+        }
+        if (this.y < 0) {
+            this.y = 0;
+            this.old_y = this.y + vel_y * damp_constant;
+        } else if (this.y > SCREEN_HEIGHT) {
+            this.y = SCREEN_HEIGHT;
+            this.old_y = this.y + vel_y * damp_constant;
+        }
     }
 }
 
@@ -76,26 +109,62 @@ class Link {
         let dy = this.p1.y - this.p0.y;
         let dist = Math.sqrt(dx * dx + dy * dy);
         let diff = this.restLength - dist;
-        let percent = (diff / dist) / 2;
-
-        let offset_x = dx * percent;
-        let offset_y = dy * percent;
-
-        if (!this.p0.pinned) {
-            this.p0.x -= offset_x;
-            this.p0.y -= offset_y;
-        }
-
-        if (!this.p1.pinned) {
-            this.p1.x += offset_x;
-            this.p1.y += offset_y;
+    
+        let moveX = (dx / dist) * diff * 0.9;
+        let moveY = (dy / dist) * diff * 0.9;
+    
+        if (!this.p0.pinned && !this.p1.pinned) {
+            this.p0.x -= moveX;
+            this.p0.y -= moveY;
+            this.p1.x += moveX;
+            this.p1.y += moveY;
+        } else if (!this.p0.pinned) {
+            this.p0.x -= moveX * 2;
+            this.p0.y -= moveY * 2;
+        } else if (!this.p1.pinned) {
+            this.p1.x += moveX * 2;
+            this.p1.y += moveY * 2;
         }
     }
+    
+    
+    
 
     render() {
         stroke(200, 100);
         line(this.p0.x, this.p0.y, this.p1.x, this.p1.y);
     }
+}
+
+function pointToLineDistance(px, py, x1, y1, x2, y2) {
+    let A = px - x1;
+    let B = py - y1;
+    let C = x2 - x1;
+    let D = y2 - y1;
+
+    let dot = A * C + B * D;
+    let len_sq = C * C + D * D;
+    let param = -1;
+    if (len_sq != 0) {
+        param = dot / len_sq;
+    }
+
+    let xx, yy;
+
+    if (param < 0) {
+        xx = x1;
+        yy = y1;
+    } else if (param > 1) {
+        xx = x2;
+        yy = y2;
+    } else {
+        xx = x1 + param * C;
+        yy = y1 + param * D;
+    }
+
+    let dx = px - xx;
+    let dy = py - yy;
+    return Math.sqrt(dx * dx + dy * dy);
 }
 
 class SoftBody {
@@ -134,36 +203,16 @@ class SoftBody {
         }
     }
 
-
     checkCollision(ball) {
-        for (let point of this.points) {
-            let dist = distance(ball, point);
-            if (dist < ball.radius + point.radius) {
-                let dx = point.x - ball.x;
-                let dy = point.y - ball.y;
-                let collisionAngle = Math.atan2(dy, dx);
-                
-                let ballVelX = ball.x - ball.old_x;
-                let ballVelY = ball.y - ball.old_y;
-                
-                ball.old_x = ball.x - ballVelX * damp_constant;
-                ball.old_y = ball.y - ballVelY * damp_constant;
-                
-                let force = 10; 
-                point.x += Math.cos(collisionAngle) * force;
-                point.y += Math.sin(collisionAngle) * force;
-            }
-        }
     }
-
-
 
     update(dt) {
         for (let point of this.points) {
             point.update(dt);
         }
 
-        for (let i = 0; i < 5; i++) {
+        // Multiple iterations to stabilize the constraints
+        for (let i = 0; i < 20; i++) {
             for (let link of this.links) {
                 link.update();
             }
@@ -182,35 +231,17 @@ class SoftBody {
         for (let point of this.points) {
             point.render();
         }
-
-
     }
 }
 
-class Ball extends Point {
-    constructor(x, y, mass, radius) {
-        super(x, y, mass, false);
-        this.radius = radius;
-    }
-
-    render() {
-        noStroke();
-        fill(255, 0, 0);
-        circle(this.x, this.y, this.radius * 2);
-    }
-}
-
-
-
+// Global variables
 let softBody;
-let ball = new Ball(100, 50, 1, 10);
-let i;
-
+let ball;
 
 function setup() {
     createCanvas(SCREEN_WIDTH, SCREEN_HEIGHT + 100);
-    softBody = new SoftBody(100, SCREEN_HEIGHT-100, 200, 100, 4, 8); // x, y, width, height, rows, cols
-    i = 0;
+    softBody = new SoftBody(100, SCREEN_HEIGHT - 500, 200, 100, 4, 8); // x, y, width, height, rows, cols
+    ball = new Ball(150, 50, 25, 10);
 }
 
 function draw() {
