@@ -113,7 +113,7 @@ class SoftBody {
                 const point = new Point(px, py, 5, pinned);
                 this.points.push(point);
 
-                if ((i === 0 && j === cols - 1) || 
+                if ((i === 0 && j === cols - 1) ||
                     (j === cols - 1 && (i === Math.floor(rows / 2)))) {
                     this.draggablePoints.push(point);
                 }
@@ -124,16 +124,34 @@ class SoftBody {
             for (let j = 0; j < cols; j++) {
                 const index = i * cols + j;
 
-                if (j < cols - 1) this.links.push(new ElasticLink(this.points[index], this.points[index + 1], dx, this.restitution));
-                if (i < rows - 1) this.links.push(new ElasticLink(this.points[index], this.points[index + cols], dy, this.restitution));
+                if (j < cols - 1) {
+                    this.links.push(new ElasticLink(this.points[index], this.points[index + 1], dx, this.restitution)); // Horizontal link
+                }
+
+                if (i < rows - 1) {
+                    this.links.push(new ElasticLink(this.points[index], this.points[index + cols], dy, this.restitution)); // Vertical link
+                }
+
                 if (i < rows - 1 && j < cols - 1) {
-                    this.links.push(new ElasticLink(this.points[index], this.points[index + cols + 1], Math.hypot(dx, dy), this.restitution));
+                    this.links.push(new ElasticLink(this.points[index], this.points[index + cols + 1], Math.hypot(dx, dy), this.restitution)); // Diagonal (bottom-left to top-right)
+                }
+
+                if (i < rows - 1 && j > 0) {
+                    this.links.push(new ElasticLink(this.points[index], this.points[index + cols - 1], Math.hypot(dx, dy), this.restitution)); // Diagonal (bottom-right to top-left)
                 }
             }
         }
 
+        for (let i = 0; i < 20; i++) {
+            this.links.push(new ElasticLink(this.points[cols - 1], this.points[(rows - 1) * cols + (cols - 1)], dy * (rows - 1), this.restitution));
+            this.links.push(new ElasticLink(this.points[cols - 1], this.points[Math.floor(rows / 2) * cols + (cols - 1)], dy * Math.floor(rows / 2), this.restitution));
+            this.links.push(new ElasticLink(this.points[(rows - 1) * cols + (cols - 1)], this.points[Math.floor(rows / 2) * cols + (cols - 1)], dy * Math.floor(rows / 2), this.restitution));
+        }
+
         this.middleRightPoint = this.draggablePoints[1];
     }
+    
+    
 
     update(dt) {
         this.points.forEach(point => point.update(dt));
@@ -196,11 +214,19 @@ class SoftBody {
 
         [topPoint, middlePoint, bottomPoint].forEach(point => {
             point.color = color(0, 255, 0);
-            point.y += dy;
-            point.old_y += dy;
+            // point.y += dy
+            // point.old_y += dy;
             point.x += dx
             point.old_x += dx
         });
+
+        
+        topPoint.x = middlePoint.x;
+        topPoint.old_x = middlePoint.old_x;
+        bottomPoint.x = middlePoint.x;
+        bottomPoint.old_x = middlePoint.old_x;
+
+        console.log(topPoint.x, middlePoint.x, bottomPoint.x)
     }
     
     
@@ -211,7 +237,7 @@ let softBodies = [];
 
 function setup() {
     createCanvas(SCREEN_WIDTH, SCREEN_HEIGHT + 100);
-    softBodies.push(new SoftBody(100, SCREEN_HEIGHT - 200, 200, 100, 5, 7, 1));
+    softBodies.push(new SoftBody(100, SCREEN_HEIGHT - 200, 200, 100, 3, 7, 1));
 }
 
 function draw() {
