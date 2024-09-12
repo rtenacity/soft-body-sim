@@ -51,7 +51,7 @@ class Point {
 
     render() {
         noStroke();
-        fill(this.isDragged ? color(255, 0, 0) : color(255, 100));
+        fill(this.color);
         circle(this.x, this.y, this.radius * 2);
     }
 }
@@ -109,7 +109,7 @@ class SoftBody {
             for (let j = 0; j < cols; j++) {
                 const px = x + j * dx;
                 const py = y + i * dy;
-                const pinned = (i === 0 && j === 0) || (i === rows - 1 && j === 0);
+                const pinned = j === 0;
                 const point = new Point(px, py, 5, pinned);
                 this.points.push(point);
 
@@ -131,6 +131,8 @@ class SoftBody {
                 }
             }
         }
+
+        this.middleRightPoint = this.draggablePoints[1];
     }
 
     update(dt) {
@@ -152,48 +154,64 @@ class SoftBody {
         for (const point of this.draggablePoints) {
             if (distance(point, { x: mouseX, y: mouseY }) < point.radius) {
                 point.isDragged = true;
+                point.color = color(0, 255, 0);
                 break;
             }
         }
     }
 
     handleMouseRelease() {
-        this.draggablePoints.forEach(point => point.isDragged = false);
+        this.draggablePoints.forEach(point => {
+            point.isDragged = false;
+
+        });
+        this.points.forEach(point => point.color = color(255, 100));
     }
 
     handleMouseDrag(mouseX, mouseY) {
         const draggedPoint = this.draggablePoints.find(point => point.isDragged);
         if (draggedPoint) {
-            if (draggedPoint === this.draggablePoints[0] || draggedPoint === this.draggablePoints[1]) {
+            if (draggedPoint === this.draggablePoints[0]) {
                 draggedPoint.x = mouseX;
                 draggedPoint.y = mouseY;
                 draggedPoint.old_x = mouseX;
                 draggedPoint.old_y = mouseY;
-            } else {
+            } else if (draggedPoint === this.middleRightPoint) {
                 const dx = mouseX - draggedPoint.x;
-                this.applyUniformRightSidePull(dx);
+                const dy = mouseY - draggedPoint.y;
+                this.applyUniformRightSidePull(dx, dy);
             }
         }
     }
-
-    applyUniformRightSidePull(dx) {
+    
+    applyUniformRightSidePull(dx, dy) {
         const rightCol = this.cols - 1;
-        for (let i = 0; i < this.rows; i++) {
-            const point = this.points[i * this.cols + rightCol];
-            if (!point.pinned) {
-                point.x += dx;
-                point.old_x = point.x;
-            }
-        }
-    }
-}
+        
+        console.log(dx)
 
+    
+        const topPoint = this.points[0 * this.cols + rightCol];
+        const middlePoint = this.points[Math.floor(this.rows / 2) * this.cols + rightCol];
+        const bottomPoint = this.points[(this.rows - 1) * this.cols + rightCol];
+
+        [topPoint, middlePoint, bottomPoint].forEach(point => {
+            point.color = color(0, 255, 0);
+            point.y += dy;
+            point.old_y += dy;
+            point.x += dx
+            point.old_x += dx
+        });
+    }
+    
+    
+    
+}
 // Global variables
 let softBodies = [];
 
 function setup() {
     createCanvas(SCREEN_WIDTH, SCREEN_HEIGHT + 100);
-    softBodies.push(new SoftBody(100, SCREEN_HEIGHT - 500, 200, 100, 5, 8, 0.4));
+    softBodies.push(new SoftBody(100, SCREEN_HEIGHT - 200, 200, 100, 5, 7, 1));
 }
 
 function draw() {
