@@ -1,134 +1,90 @@
+// Constants
 const SCREEN_WIDTH = window.innerWidth;
 const SCREEN_HEIGHT = window.innerHeight - 100;
+const GRAVITY = 500; // pixels per second^2
+const DAMPING = 0.5;
+const CONSTRAINT_ITERATIONS = 100;
 
-let g = 500;  // Constant gravitational acceleration in pixels per second^2
-let force_x = 0;
-let damp_constant = 0.5;
+// Utility functions
+const distance = (p0, p1) => Math.hypot(p1.x - p0.x, p1.y - p0.y);
 
-function distance(p0, p1) {
-    let dx = p1.x - p0.x;
-    let dy = p1.y - p0.y;
-    return Math.sqrt(dx * dx + dy * dy);
-}
-
+// Base classes
 class Point {
-    constructor(x, y, mass, pinned) {
-        this.x = x;
-        this.y = y;
-        this.old_x = x;
-        this.old_y = y;
+    constructor(x, y, mass = 1, pinned = false, radius = 5) {
+        this.x = this.old_x = x;
+        this.y = this.old_y = y;
         this.mass = mass;
         this.pinned = pinned;
-        this.radius = 5;
-    }
-
-    update(dt) {
-        if (!this.pinned) {
-            let vel_x = (this.x - this.old_x);
-            let vel_y = (this.y - this.old_y);
-
-            this.old_x = this.x;
-            this.old_y = this.y;
-
-            // Apply constant acceleration for gravity (g)
-            let acc_x = force_x / this.mass;
-            let acc_y = g;  // Gravity is a constant acceleration, no need to divide by mass
-
-            this.x += vel_x + acc_x * dt * dt;
-            this.y += vel_y + acc_y * dt * dt;
-        }
-    }
-
-    constrain() {
-        let vel_x = (this.x - this.old_x);
-        let vel_y = (this.y - this.old_y);
-        if (this.x < 0) {
-            this.x = 0;
-            this.old_x = this.x + vel_x * damp_constant;
-        } else if (this.x > SCREEN_WIDTH) {
-            this.x = SCREEN_WIDTH;
-            this.old_x = this.x + vel_x * damp_constant;
-        }
-        if (this.y < 0) {
-            this.y = 0;
-            this.old_y = this.y + vel_y * damp_constant;
-        } else if (this.y > SCREEN_HEIGHT) {
-            this.y = SCREEN_HEIGHT;
-            this.old_y = this.y + vel_y * damp_constant;
-        }
-    }
-
-    render() {
-        noStroke();
-        fill(255, 100);
-        circle(this.x, this.y, this.radius * 2);
-    }
-}
-
-class Ball extends Point {
-    constructor(x, y, mass, radius) {
-        super(x, y, mass, false);
         this.radius = radius;
+        this.isDragged = false;
+    }
+
+    update(dt, force_x = 0) {
+        if (this.pinned || this.isDragged) return;
+
+        const vel_x = this.x - this.old_x;
+        const vel_y = this.y - this.old_y;
+
+        this.old_x = this.x;
+        this.old_y = this.y;
+
+        const acc_x = force_x / this.mass;
+        const acc_y = GRAVITY;
+
+        this.x += vel_x + acc_x * dt * dt;
+        this.y += vel_y + acc_y * dt * dt;
+    }
+
+    constrain() {
+        if (this.pinned || this.isDragged) return;
+
+        const vel_x = (this.x - this.old_x) * DAMPING;
+        const vel_y = (this.y - this.old_y) * DAMPING;
+
+        if (this.x < 0) { this.x = 0; this.old_x = this.x + vel_x; }
+        else if (this.x > SCREEN_WIDTH) { this.x = SCREEN_WIDTH; this.old_x = this.x + vel_x; }
+
+        if (this.y < 0) { this.y = 0; this.old_y = this.y + vel_y; }
+        else if (this.y > SCREEN_HEIGHT) { this.y = SCREEN_HEIGHT; this.old_y = this.y + vel_y; }
     }
 
     render() {
         noStroke();
-        fill(255, 0, 0);
+        fill(this.isDragged ? color(255, 0, 0) : color(255, 100));
         circle(this.x, this.y, this.radius * 2);
-    }
-
-    constrain() {
-        let vel_x = (this.x - this.old_x);
-        let vel_y = (this.y - this.old_y);
-        if (this.x < 0) {
-            this.x = 0;
-            this.old_x = this.x + vel_x * damp_constant;
-        } else if (this.x > SCREEN_WIDTH) {
-            this.x = SCREEN_WIDTH;
-            this.old_x = this.x + vel_x * damp_constant;
-        }
-        if (this.y < 0) {
-            this.y = 0;
-            this.old_y = this.y + vel_y * damp_constant;
-        } else if (this.y > SCREEN_HEIGHT) {
-            this.y = SCREEN_HEIGHT;
-            this.old_y = this.y + vel_y * damp_constant;
-        }
     }
 }
 
 class Link {
-    constructor(p0, p1, restLength) {
+    constructor(p0, p1, restLength, restitution) {
         this.p0 = p0;
         this.p1 = p1;
         this.restLength = restLength;
+        this.restitution = restitution;
     }
 
     update() {
-        let dx = this.p1.x - this.p0.x;
-        let dy = this.p1.y - this.p0.y;
-        let dist = Math.sqrt(dx * dx + dy * dy);
-        let diff = this.restLength - dist;
-    
-        let moveX = (dx / dist) * diff * 0.9;
-        let moveY = (dy / dist) * diff * 0.9;
-    
-        if (!this.p0.pinned && !this.p1.pinned) {
-            this.p0.x -= moveX;
-            this.p0.y -= moveY;
-            this.p1.x += moveX;
-            this.p1.y += moveY;
-        } else if (!this.p0.pinned) {
-            this.p0.x -= moveX * 2;
-            this.p0.y -= moveY * 2;
-        } else if (!this.p1.pinned) {
-            this.p1.x += moveX * 2;
-            this.p1.y += moveY * 2;
+        const dx = this.p1.x - this.p0.x;
+        const dy = this.p1.y - this.p0.y;
+        const dist = Math.hypot(dx, dy);
+        const diff = (this.restLength - dist) / dist;
+
+        // Apply restitution to the difference
+        const appliedDiff = diff * this.restitution;
+
+        if (!this.p0.pinned && !this.p1.pinned && !this.p0.isDragged && !this.p1.isDragged) {
+            this.p0.x -= 0.5 * appliedDiff * dx;
+            this.p0.y -= 0.5 * appliedDiff * dy;
+            this.p1.x += 0.5 * appliedDiff * dx;
+            this.p1.y += 0.5 * appliedDiff * dy;
+        } else if (!this.p0.pinned && !this.p0.isDragged) {
+            this.p0.x -= appliedDiff * dx;
+            this.p0.y -= appliedDiff * dy;
+        } else if (!this.p1.pinned && !this.p1.isDragged) {
+            this.p1.x += appliedDiff * dx;
+            this.p1.y += appliedDiff * dy;
         }
     }
-    
-    
-    
 
     render() {
         stroke(200, 100);
@@ -136,126 +92,113 @@ class Link {
     }
 }
 
-function pointToLineDistance(px, py, x1, y1, x2, y2) {
-    let A = px - x1;
-    let B = py - y1;
-    let C = x2 - x1;
-    let D = y2 - y1;
-
-    let dot = A * C + B * D;
-    let len_sq = C * C + D * D;
-    let param = -1;
-    if (len_sq != 0) {
-        param = dot / len_sq;
-    }
-
-    let xx, yy;
-
-    if (param < 0) {
-        xx = x1;
-        yy = y1;
-    } else if (param > 1) {
-        xx = x2;
-        yy = y2;
-    } else {
-        xx = x1 + param * C;
-        yy = y1 + param * D;
-    }
-
-    let dx = px - xx;
-    let dy = py - yy;
-    return Math.sqrt(dx * dx + dy * dy);
-}
-
 class SoftBody {
-    constructor(x, y, width, height, rows, cols) {
+    constructor(x, y, width, height, rows, cols, restitution) {
         this.points = [];
         this.links = [];
+        this.draggablePoints = [];
+        this.restitution = restitution;
 
-        // Create points
+        const dx = width / (cols - 1);
+        const dy = height / (rows - 1);
+
         for (let i = 0; i < rows; i++) {
             for (let j = 0; j < cols; j++) {
-                let px = x + j * (width / (cols - 1));
-                let py = y + i * (height / (rows - 1));
-                let pinned = (i === 0 && (j === 0 || j === cols - 1));
-                this.points.push(new Point(px, py, 5, false));
+                const px = x + j * dx;
+                const py = y + i * dy;
+                const pinned = (i === 0 && j === 0 || i === rows - 1 && j === 0);
+                const point = new Point(px, py, 5, pinned);
+                this.points.push(point);
+
+                if ((i === 0 && j === cols - 1) || (i === rows - 1 && j === cols - 1)) {
+                    this.draggablePoints.push(point);
+                }
             }
         }
 
-        // Create links
         for (let i = 0; i < rows; i++) {
             for (let j = 0; j < cols; j++) {
-                let index = i * cols + j;
+                const index = i * cols + j;
 
-                if (j < cols - 1) {
-                    this.links.push(new Link(this.points[index], this.points[index + 1], width / (cols - 1)));
-                }
-
-                if (i < rows - 1) {
-                    this.links.push(new Link(this.points[index], this.points[index + cols], height / (rows - 1)));
-                }
-
+                if (j < cols - 1) this.links.push(new Link(this.points[index], this.points[index + 1], dx, this.restitution));
+                if (i < rows - 1) this.links.push(new Link(this.points[index], this.points[index + cols], dy, this.restitution));
                 if (i < rows - 1 && j < cols - 1) {
-                    this.links.push(new Link(this.points[index], this.points[index + cols + 1],
-                        Math.sqrt(Math.pow(width / (cols - 1), 2) + Math.pow(height / (rows - 1), 2))));
+                    this.links.push(new Link(this.points[index], this.points[index + cols + 1], Math.hypot(dx, dy), this.restitution));
                 }
             }
         }
-    }
-
-    checkCollision(ball) {
     }
 
     update(dt) {
-        for (let point of this.points) {
-            point.update(dt);
+        this.points.forEach(point => point.update(dt));
+
+        for (let i = 0; i < CONSTRAINT_ITERATIONS; i++) {
+            this.links.forEach(link => link.update());
         }
 
-        // Multiple iterations to stabilize the constraints
-        for (let i = 0; i < 20; i++) {
-            for (let link of this.links) {
-                link.update();
-            }
-        }
-
-        for (let point of this.points) {
-            point.constrain();
-        }
+        this.points.forEach(point => point.constrain());
     }
 
     render() {
-        for (let link of this.links) {
-            link.render();
-        }
+        this.links.forEach(link => link.render());
+        this.points.forEach(point => point.render());
+    }
 
-        for (let point of this.points) {
-            point.render();
+    handleMousePress(mouseX, mouseY) {
+        for (const point of this.draggablePoints) {
+            if (distance(point, { x: mouseX, y: mouseY }) < point.radius) {
+                point.isDragged = true;
+                break;
+            }
+        }
+    }
+
+    handleMouseRelease() {
+        for (const point of this.draggablePoints) {
+            point.isDragged = false;
+        }
+    }
+
+    handleMouseDrag(mouseX, mouseY) {
+        for (const point of this.draggablePoints) {
+            if (point.isDragged) {
+                point.x = mouseX;
+                point.y = mouseY;
+                point.old_x = mouseX;
+                point.old_y = mouseY;
+                break;
+            }
         }
     }
 }
 
 // Global variables
-let softBody;
-let ball;
+let softBodies = [];
 
 function setup() {
     createCanvas(SCREEN_WIDTH, SCREEN_HEIGHT + 100);
-    softBody = new SoftBody(100, SCREEN_HEIGHT - 500, 200, 100, 4, 8); // x, y, width, height, rows, cols
-    ball = new Ball(150, 50, 25, 10);
+    softBodies.push(new SoftBody(100, SCREEN_HEIGHT - 500, 200, 100, 4, 8, 0.5));
 }
 
 function draw() {
     background(0);
 
-    let dt = deltaTime / 1000;
+    const dt = deltaTime / 1000;
 
-    softBody.update(dt);
-    ball.update(dt);
+    softBodies.forEach(softBody => {
+        softBody.update(dt);
+        softBody.render();
+    });
+}
 
-    softBody.checkCollision(ball);
+function mousePressed() {
+    softBodies.forEach(softBody => softBody.handleMousePress(mouseX, mouseY));
+}
 
-    ball.constrain();
+function mouseReleased() {
+    softBodies.forEach(softBody => softBody.handleMouseRelease());
+}
 
-    softBody.render();
-    ball.render();
+function mouseDragged() {
+    softBodies.forEach(softBody => softBody.handleMouseDrag(mouseX, mouseY));
 }
