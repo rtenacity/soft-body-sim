@@ -55,7 +55,7 @@ class Point {
     }
 }
 
-class Link {
+class ElasticLink {
     constructor(p0, p1, restLength, restitution) {
         this.p0 = p0;
         this.p1 = p1;
@@ -94,10 +94,12 @@ class Link {
 
 class SoftBody {
     constructor(x, y, width, height, rows, cols, restitution) {
+        this.rows = rows;
+        this.cols = cols;
+        this.restitution = restitution;
         this.points = [];
         this.links = [];
         this.draggablePoints = [];
-        this.restitution = restitution;
 
         const dx = width / (cols - 1);
         const dy = height / (rows - 1);
@@ -106,11 +108,12 @@ class SoftBody {
             for (let j = 0; j < cols; j++) {
                 const px = x + j * dx;
                 const py = y + i * dy;
-                const pinned = (i === 0 && j === 0 || i === rows - 1 && j === 0);
+                const pinned = (i === 0 && j === 0) || (i === rows - 1 && j === 0);
                 const point = new Point(px, py, 5, pinned);
                 this.points.push(point);
 
-                if ((i === 0 && j === cols - 1) || (i === rows - 1 && j === cols - 1)) {
+                if ((i === 0 && j === cols - 1) || 
+                    (j === cols - 1 && (i === Math.floor(rows / 2)))) {
                     this.draggablePoints.push(point);
                 }
             }
@@ -120,10 +123,10 @@ class SoftBody {
             for (let j = 0; j < cols; j++) {
                 const index = i * cols + j;
 
-                if (j < cols - 1) this.links.push(new Link(this.points[index], this.points[index + 1], dx, this.restitution));
-                if (i < rows - 1) this.links.push(new Link(this.points[index], this.points[index + cols], dy, this.restitution));
+                if (j < cols - 1) this.links.push(new ElasticLink(this.points[index], this.points[index + 1], dx, this.restitution));
+                if (i < rows - 1) this.links.push(new ElasticLink(this.points[index], this.points[index + cols], dy, this.restitution));
                 if (i < rows - 1 && j < cols - 1) {
-                    this.links.push(new Link(this.points[index], this.points[index + cols + 1], Math.hypot(dx, dy), this.restitution));
+                    this.links.push(new ElasticLink(this.points[index], this.points[index + cols + 1], Math.hypot(dx, dy), this.restitution));
                 }
             }
         }
@@ -154,19 +157,31 @@ class SoftBody {
     }
 
     handleMouseRelease() {
-        for (const point of this.draggablePoints) {
-            point.isDragged = false;
-        }
+        this.draggablePoints.forEach(point => point.isDragged = false);
     }
 
     handleMouseDrag(mouseX, mouseY) {
-        for (const point of this.draggablePoints) {
-            if (point.isDragged) {
-                point.x = mouseX;
-                point.y = mouseY;
-                point.old_x = mouseX;
-                point.old_y = mouseY;
-                break;
+        const draggedPoint = this.draggablePoints.find(point => point.isDragged);
+        if (draggedPoint) {
+            if (draggedPoint === this.draggablePoints[0] || draggedPoint === this.draggablePoints[1]) {
+                draggedPoint.x = mouseX;
+                draggedPoint.y = mouseY;
+                draggedPoint.old_x = mouseX;
+                draggedPoint.old_y = mouseY;
+            } else {
+                const dx = mouseX - draggedPoint.x;
+                this.applyUniformRightSidePull(dx);
+            }
+        }
+    }
+
+    applyUniformRightSidePull(dx) {
+        const rightCol = this.cols - 1;
+        for (let i = 0; i < this.rows; i++) {
+            const point = this.points[i * this.cols + rightCol];
+            if (!point.pinned) {
+                point.x += dx;
+                point.old_x = point.x;
             }
         }
     }
@@ -177,7 +192,7 @@ let softBodies = [];
 
 function setup() {
     createCanvas(SCREEN_WIDTH, SCREEN_HEIGHT + 100);
-    softBodies.push(new SoftBody(100, SCREEN_HEIGHT - 500, 200, 100, 4, 8, 0.5));
+    softBodies.push(new SoftBody(100, SCREEN_HEIGHT - 500, 200, 100, 5, 8, 0.4));
 }
 
 function draw() {
