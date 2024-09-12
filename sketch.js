@@ -17,6 +17,7 @@ class Point {
         this.pinned = pinned;
         this.radius = radius;
         this.isDragged = false;
+        this.color = color(255, 100);
     }
 
     update(dt, force_x = 0) {
