@@ -70,7 +70,6 @@ class ElasticLink {
         const dist = Math.hypot(dx, dy);
         const diff = (this.restLength - dist) / dist;
 
-        // Apply restitution to the difference
         const appliedDiff = diff * this.restitution;
 
         if (!this.p0.pinned && !this.p1.pinned && !this.p0.isDragged && !this.p1.isDragged) {
@@ -88,10 +87,20 @@ class ElasticLink {
     }
 
     render() {
-        stroke(200, 100);
+        const dx = this.p1.x - this.p0.x;
+        const dy = this.p1.y - this.p0.y;
+        const dist = Math.hypot(dx, dy);
+
+        const stretchRatio = dist / this.restLength * 1.2;
+
+        const colorValue = map(stretchRatio, 1, 2, 0, 255); // 1 is rest length, 2 is twice the rest length
+        const colorStretch = color(colorValue, 255 - colorValue, 0); // Green to red
+
+        stroke(colorStretch);
         line(this.p0.x, this.p0.y, this.p1.x, this.p1.y);
     }
 }
+
 
 class SoftBody {
     constructor(x, y, width, height, rows, cols, restitution) {
@@ -139,6 +148,7 @@ class SoftBody {
                 if (i < rows - 1 && j > 0) {
                     this.links.push(new ElasticLink(this.points[index], this.points[index + cols - 1], Math.hypot(dx, dy), this.restitution)); // Diagonal (bottom-right to top-left)
                 }
+            
             }
         }
 
@@ -237,7 +247,7 @@ let softBodies = [];
 
 function setup() {
     createCanvas(SCREEN_WIDTH, SCREEN_HEIGHT + 100);
-    softBodies.push(new SoftBody(100, SCREEN_HEIGHT - 200, 200, 100, 3, 7, 0.5));
+    softBodies.push(new SoftBody(100, SCREEN_HEIGHT - 200, 200, 100, 3, 7, 0.3));
 }
 
 function draw() {
