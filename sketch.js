@@ -469,9 +469,9 @@ function setup() {
     createCanvas(SCREEN_WIDTH, SCREEN_HEIGHT + 100);
 
     softBodies.push(
-        new SoftBody(100, SCREEN_HEIGHT - 50, 200, 50, 3, 7, 0.5, true)
+        new SoftBody(50, SCREEN_HEIGHT - 50, 200, 50, 3, 7, 0.5, true)
     );
-    softBodies.push(new RigidBody(450, SCREEN_HEIGHT - 50, 200, 50));
+    softBodies.push(new RigidBody(300, SCREEN_HEIGHT - 50, 200, 50));
 
     const rigidLink = new RigidLink(
         softBodies[0].getMiddleRightPoint(),
