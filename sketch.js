@@ -235,11 +235,11 @@ class SoftBody {
         this.middleRightPoint =
             this.points[Math.floor(rows / 2) * cols + (cols - 1)];
 
-        this.applyUniformRightSidePull(-20, 0);
+        this.applyUniformRightSidePull(-30, 0);
     }
 
     update(dt) {
-        this.applyUniformRightSidePull(2 * Math.sin(this.frameCount / 20), 0);
+        this.applyUniformRightSidePull(5 * Math.sin(this.frameCount / 20), 0);
         this.points.forEach((point) => point.update(dt));
 
         for (let i = 0; i < CONSTRAINT_ITERATIONS; i++) {
@@ -294,8 +294,6 @@ class SoftBody {
 
     applyUniformRightSidePull(dx, dy) {
         const rightCol = this.cols - 1;
-
-        console.log(dx);
 
         const topPoint = this.points[0 * this.cols + rightCol];
         const middlePoint =
@@ -481,6 +479,8 @@ function setup() {
 
 function draw() {
     background(0);
+
+    frameRate(240);
 
     const dt = deltaTime / 1000;
 
