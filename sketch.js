@@ -236,7 +236,10 @@ class SoftBody {
         this.middleRightPoint =
             this.points[Math.floor(rows / 2) * cols + (cols - 1)];
 
-        this.applyUniformRightSidePull(0, 0);
+        //this.applyUniformRightSidePull(0, 0);
+        if (!this.bottom) {
+            this.applyUniformRightSidePull(10, 0);
+        }
     }
 
     update(dt) {
@@ -488,28 +491,30 @@ let rigidLinks = [];
 function setup() {
     createCanvas(SCREEN_WIDTH, SCREEN_HEIGHT + 100);
 
+
     softBodies.push(
         new SoftBody(50, SCREEN_HEIGHT - 50, 150, 50, 3, 5, 0.5, true, true)
     );
+
     softBodies.push(new RigidBody(300, SCREEN_HEIGHT - 125, 300, 125));
+
     softBodies.push(
-        new SoftBody(50, SCREEN_HEIGHT - 125, 150, 50, 3, 5, 0.5, true, false)
+        new SoftBody(50, SCREEN_HEIGHT - 125, 140, 50, 3, 5, 0.5, true, false)
     );
 
     const rigidLink = new RigidLink(
         softBodies[0].getBottomRightPoint(),
         softBodies[1].getBottomLeftPoint()
     );
-
     rigidLinks.push(rigidLink);
 
-    rigidLink2 = new RigidLink(
+    const rigidLink2 = new RigidLink(
         softBodies[2].getTopRightPoint(),
         softBodies[1].getTopLeftPoint()
     );
-
     rigidLinks.push(rigidLink2);
 }
+
 
 function draw() {
     background(0);
