@@ -1,9 +1,9 @@
 // Constants
 const SCREEN_WIDTH = window.innerWidth;
 const SCREEN_HEIGHT = window.innerHeight - 100;
-const GRAVITY = 500; // pixels per second^2
-const DAMPING = 0;
-const CONSTRAINT_ITERATIONS = 100;
+const GRAVITY = 100; // pixels per second^2
+const DAMPING = 0.8;
+const CONSTRAINT_ITERATIONS = 300;
 
 // Utility functions
 const distance = (p0, p1) => Math.hypot(p1.x - p0.x, p1.y - p0.y);
@@ -117,7 +117,7 @@ class ElasticLink {
 }
 
 class SoftBody {
-    constructor(x, y, width, height, rows, cols, restitution, isPinned) {
+    constructor(x, y, width, height, rows, cols, restitution, isPinned, bottom) {
         this.rows = rows;
         this.cols = cols;
         this.restitution = restitution;
@@ -125,6 +125,7 @@ class SoftBody {
         this.links = [];
         this.draggablePoints = [];
         this.frameCount = 0;
+        this.bottom = bottom;
 
         const dx = width / (cols - 1);
         const dy = height / (rows - 1);
@@ -235,11 +236,16 @@ class SoftBody {
         this.middleRightPoint =
             this.points[Math.floor(rows / 2) * cols + (cols - 1)];
 
-        this.applyUniformRightSidePull(-30, 0);
+        this.applyUniformRightSidePull(0, 0);
     }
 
     update(dt) {
-        this.applyUniformRightSidePull(3 * Math.sin(this.frameCount / 30), 0);
+        if (this.bottom === true) {
+            console.log("top");
+            this.applyUniformRightSidePull(1 * Math.sin(this.frameCount / 30), 0);
+        } else {
+            this.applyUniformRightSidePull(1 * Math.sin(this.frameCount / 30 + (Math.PI/2)), 0);
+        }
         this.points.forEach((point) => point.update(dt));
 
         for (let i = 0; i < CONSTRAINT_ITERATIONS; i++) {
@@ -320,6 +326,14 @@ class SoftBody {
 
     getMiddleRightPoint() {
         return this.middleRightPoint;
+    }
+
+    getBottomRightPoint() {
+        return this.points[this.points.length -1 ];
+    }
+
+    getTopRightPoint() {
+        return this.points[this.cols - 1];
     }
 }
 
@@ -457,6 +471,14 @@ class RigidBody {
     getMiddleRightPoint() {
         return this.middleRightPoint;
     }
+
+    getBottomLeftPoint() {
+        return this.points[6];
+    }
+
+    getTopLeftPoint() {
+        return this.points[0];
+    }
 }
 
 // Global variables
@@ -467,20 +489,32 @@ function setup() {
     createCanvas(SCREEN_WIDTH, SCREEN_HEIGHT + 100);
 
     softBodies.push(
-        new SoftBody(50, SCREEN_HEIGHT - 50, 200, 50, 3, 7, 0.5, true)
+        new SoftBody(50, SCREEN_HEIGHT - 50, 150, 50, 3, 5, 0.5, true, true)
     );
-    softBodies.push(new RigidBody(300, SCREEN_HEIGHT - 50, 200, 50));
+    softBodies.push(new RigidBody(300, SCREEN_HEIGHT - 125, 300, 125));
+    softBodies.push(
+        new SoftBody(50, SCREEN_HEIGHT - 125, 150, 50, 3, 5, 0.5, true, false)
+    );
 
     const rigidLink = new RigidLink(
-        softBodies[0].getMiddleRightPoint(),
-        softBodies[1].getMiddleLeftPoint()
+        softBodies[0].getBottomRightPoint(),
+        softBodies[1].getBottomLeftPoint()
     );
-    rigidLinks.push(rigidLink);}
+
+    rigidLinks.push(rigidLink);
+
+    rigidLink2 = new RigidLink(
+        softBodies[2].getTopRightPoint(),
+        softBodies[1].getTopLeftPoint()
+    );
+
+    rigidLinks.push(rigidLink2);
+}
 
 function draw() {
     background(0);
 
-    frameRate(240);
+    frameRate(60);
 
     const dt = deltaTime / 1000;
 
