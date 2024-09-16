@@ -1,7 +1,7 @@
 // Constants
 const SCREEN_WIDTH = window.innerWidth;
 const SCREEN_HEIGHT = window.innerHeight - 100;
-const GRAVITY = 500; // pixels per second^2
+const GRAVITY = 600; // pixels per second^2
 const DAMPING = 1;
 const CONSTRAINT_ITERATIONS = 300;
 
