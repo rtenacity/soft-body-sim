@@ -2,7 +2,7 @@
 const SCREEN_WIDTH = window.innerWidth;
 const SCREEN_HEIGHT = window.innerHeight - 100;
 const GRAVITY = 500; // pixels per second^2
-const DAMPING = 1.2;
+const DAMPING = 1;
 const CONSTRAINT_ITERATIONS = 300;
 
 // Utility functions
@@ -247,9 +247,9 @@ class SoftBody {
     update(dt, theta) {
         if (this.bottom === true) {
             console.log("top");
-            this.applyUniformRightSidePull(1 * Math.sin(this.frameCount / 30), 0);
+            this.applyUniformRightSidePull(1.1 * Math.sin(this.frameCount / 30), 0);
         } else {
-            this.applyUniformRightSidePull(-1 * Math.sin(this.frameCount / 30 + (Math.PI/2)), 0);
+            this.applyUniformRightSidePull(-1.1 * Math.sin(this.frameCount / 30 + (Math.PI/2)), 0);
         }
         this.points.forEach((point) => point.update(dt));
 
