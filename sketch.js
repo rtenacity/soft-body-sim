@@ -1,7 +1,7 @@
 // Constants
 const SCREEN_WIDTH = window.innerWidth;
 const SCREEN_HEIGHT = window.innerHeight - 100;
-const GRAVITY = 200; // pixels per second^2
+const GRAVITY = 500; // pixels per second^2
 const DAMPING = 1.2;
 const CONSTRAINT_ITERATIONS = 300;
 
@@ -343,10 +343,10 @@ class SoftBody {
 }
 
 class RigidLink {
-    constructor(p0, p1) {
+    constructor(p0, p1, fixedLength = null) {
         this.p0 = p0;
         this.p1 = p1;
-        this.length = distance(p0, p1);
+        this.length = fixedLength ? fixedLength : distance(p0, p1); // Default to initial distance if no fixed length is given
     }
 
     update() {
@@ -355,6 +355,7 @@ class RigidLink {
         const currentDist = Math.hypot(dx, dy);
         const diff = (this.length - currentDist) / currentDist;
 
+        // Apply force to adjust the distance between points
         if (!this.p0.pinned && !this.p1.pinned) {
             this.p0.x -= 0.5 * diff * dx;
             this.p0.y -= 0.5 * diff * dy;
@@ -376,6 +377,7 @@ class RigidLink {
         strokeWeight(1);
     }
 }
+
 
 class RigidBody {
     constructor(x, y, width, height) {
@@ -497,7 +499,7 @@ function setup() {
 
 
     softBodies.push(
-        new SoftBody(50, SCREEN_HEIGHT - 50, 180, 50, 3, 5, 0.5, true, true)
+        new SoftBody(50, SCREEN_HEIGHT - 50, 160, 50, 3, 5, 0.5, true, true)
     );
 
     softBodies.push(new RigidBody(300, SCREEN_HEIGHT - 125, 300, 125));
@@ -508,15 +510,22 @@ function setup() {
 
     const rigidLink = new RigidLink(
         softBodies[0].getBottomRightPoint(),
-        softBodies[1].getBottomLeftPoint()
+        softBodies[1].getBottomLeftPoint(),
+        distance(softBodies[0].getBottomRightPoint(), softBodies[1].getBottomLeftPoint())
     );
-    rigidLinks.push(rigidLink);
+    for (let i = 0; i < 20; i++) {
+        rigidLinks.push(rigidLink);
+    }
 
     const rigidLink2 = new RigidLink(
         softBodies[2].getTopRightPoint(),
-        softBodies[1].getTopLeftPoint()
+        softBodies[1].getTopLeftPoint(),
+        distance(softBodies[0].getBottomRightPoint(), softBodies[1].getBottomLeftPoint())
     );
-    rigidLinks.push(rigidLink2);
+
+    for (let i = 0; i < 20; i++) {
+        rigidLinks.push(rigidLink2);
+    }
 }
 
 
