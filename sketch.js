@@ -1,8 +1,8 @@
 // Constants
 const SCREEN_WIDTH = window.innerWidth;
 const SCREEN_HEIGHT = window.innerHeight - 100;
-const GRAVITY = 100; // pixels per second^2
-const DAMPING = 0.8;
+const GRAVITY = 200; // pixels per second^2
+const DAMPING = 1.2;
 const CONSTRAINT_ITERATIONS = 300;
 
 // Utility functions
@@ -58,6 +58,8 @@ class Point {
             this.old_y = this.y + vel_y;
         }
     }
+
+    
 
     render() {
         noStroke();
@@ -242,7 +244,7 @@ class SoftBody {
         }
     }
 
-    update(dt) {
+    update(dt, theta) {
         if (this.bottom === true) {
             console.log("top");
             this.applyUniformRightSidePull(1 * Math.sin(this.frameCount / 30), 0);
@@ -487,19 +489,21 @@ class RigidBody {
 // Global variables
 let softBodies = [];
 let rigidLinks = [];
+let theta = 10; // Global theta variable controlled by left and right arrow keys
+let thetaIncrement = 0.05;
 
 function setup() {
     createCanvas(SCREEN_WIDTH, SCREEN_HEIGHT + 100);
 
 
     softBodies.push(
-        new SoftBody(50, SCREEN_HEIGHT - 50, 150, 50, 3, 5, 0.5, true, true)
+        new SoftBody(50, SCREEN_HEIGHT - 50, 180, 50, 3, 5, 0.5, true, true)
     );
 
     softBodies.push(new RigidBody(300, SCREEN_HEIGHT - 125, 300, 125));
 
     softBodies.push(
-        new SoftBody(50, SCREEN_HEIGHT - 125, 140, 50, 3, 5, 0.5, true, false)
+        new SoftBody(50, SCREEN_HEIGHT - 125, 145, 50, 3, 5, 0.5, true, false)
     );
 
     const rigidLink = new RigidLink(
@@ -524,7 +528,7 @@ function draw() {
     const dt = deltaTime / 1000;
 
     softBodies.forEach((softBody) => {
-        softBody.update(dt);
+        softBody.update(dt, 5);
         softBody.render();
     });
 
@@ -533,6 +537,16 @@ function draw() {
     }
     rigidLinks.forEach((link) => link.render());
 }
+
+
+function keyPressed() {
+    if (keyCode === LEFT_ARROW) {
+        theta -= thetaIncrement; // Decrease theta when left arrow is pressed
+    } else if (keyCode === RIGHT_ARROW) {
+        theta += thetaIncrement; // Increase theta when right arrow is pressed
+    }
+}
+
 
 function mousePressed() {
     softBodies.forEach((softBody) => softBody.handleMousePress(mouseX, mouseY));
