@@ -239,7 +239,7 @@ class SoftBody {
     }
 
     update(dt) {
-        this.applyUniformRightSidePull(5 * Math.sin(this.frameCount / 20), 0);
+        this.applyUniformRightSidePull(3 * Math.sin(this.frameCount / 30), 0);
         this.points.forEach((point) => point.update(dt));
 
         for (let i = 0; i < CONSTRAINT_ITERATIONS; i++) {
