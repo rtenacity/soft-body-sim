@@ -247,7 +247,7 @@ class SoftBody {
             console.log("top");
             this.applyUniformRightSidePull(1 * Math.sin(this.frameCount / 30), 0);
         } else {
-            this.applyUniformRightSidePull(1 * Math.sin(this.frameCount / 30 + (Math.PI/2)), 0);
+            this.applyUniformRightSidePull(-1 * Math.sin(this.frameCount / 30 + (Math.PI/2)), 0);
         }
         this.points.forEach((point) => point.update(dt));
 
